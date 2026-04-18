@@ -23,7 +23,6 @@ val Red80 = Color(0xFFFFB4AB)        // error dark
 
 val Neutral10 = Color(0xFF1A1C1E)
 val Neutral90 = Color(0xFFE2E2E9)
-val Neutral95 = Color(0xFFF1F0F7)
 val Neutral99 = Color(0xFFFFFBFF)
 
 val NeutralVariant30 = Color(0xFF44474E)

@@ -33,6 +33,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -51,7 +53,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
-private val GENDER_OPTIONS = listOf("Male", "Female")
+private val GENDER_OPTIONS = listOf("Male", "Female", "Other")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,11 +63,13 @@ fun AddUserScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val keyboardController = LocalSoftwareKeyboardController.current
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
             when (event) {
                 AddUserEvent.SaveSuccess -> onNavigateToUsers()
+                AddUserEvent.SaveError -> snackbarHostState.showSnackbar("Failed to save user. Please try again.")
             }
         }
     }
@@ -91,6 +95,7 @@ fun AddUserScreen(
                 ),
             )
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { innerPadding ->
         Column(
             modifier = Modifier

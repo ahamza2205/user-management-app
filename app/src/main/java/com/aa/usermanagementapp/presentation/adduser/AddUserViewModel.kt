@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aa.usermanagementapp.domain.model.User
 import com.aa.usermanagementapp.domain.usecase.InsertUserUseCase
+import com.aa.usermanagementapp.domain.validation.UserInputValidator
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -64,6 +65,7 @@ class AddUserViewModel @Inject constructor(
                 _events.emit(AddUserEvent.SaveSuccess)
             }.onFailure {
                 _uiState.update { it.copy(isSaving = false) }
+                _events.emit(AddUserEvent.SaveError)
             }
         }
     }

@@ -2,6 +2,7 @@ package com.aa.usermanagementapp.presentation.adduser
 
 import app.cash.turbine.test
 import com.aa.usermanagementapp.domain.usecase.InsertUserUseCase
+import com.aa.usermanagementapp.domain.validation.UserInputValidator
 import com.aa.usermanagementapp.util.FakeUserRepository
 import com.aa.usermanagementapp.util.MainDispatcherRule
 import kotlinx.coroutines.flow.first
@@ -236,12 +237,12 @@ class AddUserViewModelTest {
     }
 
     @Test
-    fun onSaveClick_whenRepositoryFails_doesNotEmitSuccessEvent() = runTest {
+    fun onSaveClick_whenRepositoryFails_emitsSaveErrorEvent() = runTest {
         repository.throwOnInsert = true
         fillValidForm()
         viewModel.events.test {
             viewModel.onSaveClick()
-            expectNoEvents()
+            assertEquals(AddUserEvent.SaveError, awaitItem())
             cancelAndIgnoreRemainingEvents()
         }
     }
@@ -263,5 +264,20 @@ class AddUserViewModelTest {
         viewModel.onAgeChange("25")
         viewModel.onJobTitleChange("Designer")
         viewModel.onGenderChange("Female")
+    }
+
+    @Test
+    fun onSaveClick_withLeadingAndTrailingWhitespace_savesTrimmedData() = runTest {
+        viewModel.onNameChange("  Alice  ")
+        viewModel.onAgeChange(" 25 ")
+        viewModel.onJobTitleChange("  Designer  ")
+        viewModel.onGenderChange("Female")
+
+        viewModel.onSaveClick()
+
+        val stored = repository.getUsers().first().first()
+        assertEquals("Alice", stored.name)
+        assertEquals(25, stored.age)
+        assertEquals("Designer", stored.jobTitle)
     }
 }

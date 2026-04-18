@@ -128,7 +128,7 @@ Prevents duplicate destination instances in the back stack regardless of how man
 
 - Single-module project — appropriate scope for this task
 - No authentication or user session required
-- Gender stored as a plain `String` — the three options ("Male", "Female", "Other") are defined as a screen-level constant, easily extended
+- Gender stored as a plain `String` — the three options (`Male`, `Female`, `Other`) are defined as a screen-level constant, easily extended
 - No edit or delete functionality was specified — not included
 - `exportSchema = false` in Room — no migration history required for version 1
 - Minimum SDK API 24 covers 99%+ of active Android devices

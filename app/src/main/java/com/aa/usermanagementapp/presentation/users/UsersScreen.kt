@@ -60,7 +60,7 @@ fun UsersScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(viewModel) {
         viewModel.events.collect { event ->
             when (event) {
                 UsersEvent.UserDeleted -> snackbarHostState.showSnackbar("User deleted")

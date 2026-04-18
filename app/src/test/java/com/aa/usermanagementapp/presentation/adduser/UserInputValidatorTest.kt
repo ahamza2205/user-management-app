@@ -1,5 +1,6 @@
 package com.aa.usermanagementapp.presentation.adduser
 
+import com.aa.usermanagementapp.domain.validation.UserInputValidator
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
