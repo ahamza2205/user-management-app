@@ -17,6 +17,10 @@ class UserRepositoryImpl @Inject constructor(
         dao.insertUser(user.toEntity())
     }
 
+    override suspend fun deleteUser(user: User) {
+        dao.deleteUser(user.toEntity())
+    }
+
     override fun getUsers(): Flow<List<User>> {
         return dao.getAllUsers().map { entities ->
             entities.map { it.toDomain() }
