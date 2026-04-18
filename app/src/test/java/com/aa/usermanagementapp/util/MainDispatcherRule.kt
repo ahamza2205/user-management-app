@@ -8,13 +8,6 @@ import kotlinx.coroutines.test.setMain
 import org.junit.rules.TestWatcher
 import org.junit.runner.Description
 
-/**
- * A JUnit rule that replaces the Main dispatcher with a [TestDispatcher] for the duration
- * of each test. Required for testing ViewModels that launch coroutines on Dispatchers.Main.
- *
- * Uses [UnconfinedTestDispatcher] by default — coroutines run eagerly, so state changes
- * are immediately observable without needing [kotlinx.coroutines.test.advanceUntilIdle].
- */
 class MainDispatcherRule(
     val testDispatcher: TestDispatcher = UnconfinedTestDispatcher(),
 ) : TestWatcher() {

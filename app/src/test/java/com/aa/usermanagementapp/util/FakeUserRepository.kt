@@ -7,12 +7,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 
-/**
- * In-memory fake implementation of [UserRepository] for use in unit tests.
- *
- * Prefer this over a mock for repository tests — it provides realistic Flow behaviour
- * (emits updates automatically) without coupling tests to internal call sequences.
- */
+
 class FakeUserRepository : UserRepository {
 
     private val _users = MutableStateFlow<List<User>>(emptyList())

@@ -18,6 +18,7 @@ import javax.inject.Inject
 @HiltViewModel
 class AddUserViewModel @Inject constructor(
     private val insertUserUseCase: InsertUserUseCase,
+    private val validator: UserInputValidator,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AddUserUiState())
@@ -27,19 +28,19 @@ class AddUserViewModel @Inject constructor(
     val events: SharedFlow<AddUserEvent> = _events.asSharedFlow()
 
     fun onNameChange(value: String) {
-        _uiState.update { it.copy(name = value, nameError = validateName(value)) }
+        _uiState.update { it.copy(name = value, nameError = validator.validateName(value)) }
     }
 
     fun onAgeChange(value: String) {
-        _uiState.update { it.copy(age = value, ageError = validateAge(value)) }
+        _uiState.update { it.copy(age = value, ageError = validator.validateAge(value)) }
     }
 
     fun onJobTitleChange(value: String) {
-        _uiState.update { it.copy(jobTitle = value, jobTitleError = validateJobTitle(value)) }
+        _uiState.update { it.copy(jobTitle = value, jobTitleError = validator.validateJobTitle(value)) }
     }
 
     fun onGenderChange(value: String) {
-        _uiState.update { it.copy(gender = value, genderError = null) }
+        _uiState.update { it.copy(gender = value, genderError = validator.validateGender(value)) }
     }
 
     fun onSaveClick() {
@@ -66,18 +67,4 @@ class AddUserViewModel @Inject constructor(
             }
         }
     }
-
-    private fun validateName(value: String): String? =
-        "Name cannot be blank".takeIf { value.isBlank() }
-
-    private fun validateAge(value: String): String? = when {
-        value.isBlank() -> "Age is required"
-        value.toIntOrNull() == null -> "Enter a valid number"
-        value.toInt() <= 0 -> "Age must be greater than 0"
-        value.toInt() > 120 -> "Enter a realistic age"
-        else -> null
-    }
-
-    private fun validateJobTitle(value: String): String? =
-        "Job title cannot be blank".takeIf { value.isBlank() }
 }
