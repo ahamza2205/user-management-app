@@ -19,7 +19,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Add
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.GroupAdd
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -29,11 +31,16 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,6 +58,15 @@ fun UsersScreen(
     viewModel: UsersViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(Unit) {
+        viewModel.events.collect { event ->
+            when (event) {
+                UsersEvent.UserDeleted -> snackbarHostState.showSnackbar("User deleted")
+            }
+        }
+    }
 
     val topBarTitle = when (val state = uiState) {
         is UsersUiState.Success -> "Users (${state.users.size})"
@@ -86,6 +102,7 @@ fun UsersScreen(
                 )
             }
         },
+        snackbarHost = { SnackbarHost(snackbarHostState) },
     ) { innerPadding ->
         when (val state = uiState) {
             UsersUiState.Loading -> LoadingContent(
@@ -100,14 +117,51 @@ fun UsersScreen(
                     .padding(innerPadding),
             )
 
-            is UsersUiState.Success -> UserListContent(
-                users = state.users,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-            )
+            is UsersUiState.Success -> {
+                UserListContent(
+                    users = state.users,
+                    onDeleteClick = viewModel::onDeleteRequest,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                )
+
+                if (state.pendingDeleteUser != null) {
+                    DeleteConfirmationDialog(
+                        userName = state.pendingDeleteUser.name,
+                        onConfirm = viewModel::onDeleteConfirmed,
+                        onDismiss = viewModel::onDeleteDismissed,
+                    )
+                }
+            }
         }
     }
+}
+
+@Composable
+private fun DeleteConfirmationDialog(
+    userName: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Delete User") },
+        text = { Text("Are you sure you want to delete $userName?") },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(
+                    text = "Delete",
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        },
+    )
 }
 
 @Composable
@@ -151,6 +205,7 @@ private fun EmptyContent(modifier: Modifier = Modifier) {
 @Composable
 private fun UserListContent(
     users: List<User>,
+    onDeleteClick: (User) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -165,7 +220,10 @@ private fun UserListContent(
             items = users,
             key = { it.id },
         ) { user ->
-            UserCard(user = user)
+            UserCard(
+                user = user,
+                onDeleteClick = { onDeleteClick(user) },
+            )
         }
     }
 }
@@ -173,6 +231,7 @@ private fun UserListContent(
 @Composable
 private fun UserCard(
     user: User,
+    onDeleteClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -186,7 +245,7 @@ private fun UserCard(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
+                .padding(start = 16.dp, top = 12.dp, bottom = 12.dp, end = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             UserAvatar(name = user.name)
@@ -214,6 +273,14 @@ private fun UserCard(
                     text = "${user.age} years  ·  ${user.gender}",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            IconButton(onClick = onDeleteClick) {
+                Icon(
+                    imageVector = Icons.Outlined.Delete,
+                    contentDescription = "Delete ${user.name}",
+                    tint = MaterialTheme.colorScheme.error,
                 )
             }
         }
