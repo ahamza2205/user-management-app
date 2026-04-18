@@ -11,12 +11,14 @@ import com.aa.usermanagementapp.presentation.users.UsersScreen
 fun AppNavHost(navController: NavHostController) {
     NavHost(
         navController = navController,
-        startDestination = Screen.AddUser.route
+        startDestination = Screen.AddUser.route,
     ) {
         composable(route = Screen.AddUser.route) {
             AddUserScreen(
                 onNavigateToUsers = {
-                    navController.navigate(Screen.UserList.route)
+                    navController.navigate(Screen.UserList.route) {
+                        launchSingleTop = true
+                    }
                 }
             )
         }
@@ -25,6 +27,14 @@ fun AppNavHost(navController: NavHostController) {
             UsersScreen(
                 onNavigateBack = {
                     navController.popBackStack()
+                },
+                onAddUser = {
+                    navController.navigate(Screen.AddUser.route) {
+                        // Pop back to AddUser (already in stack as start destination)
+                        // rather than stacking a second instance on top of UserList
+                        popUpTo(Screen.AddUser.route) { inclusive = false }
+                        launchSingleTop = true
+                    }
                 }
             )
         }
