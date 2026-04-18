@@ -120,7 +120,7 @@ Prevents duplicate destination instances in the back stack regardless of how man
 
 ## Time Taken
 
-> ~ __ hours *(to be filled in)*
+> 1 hour *(to be filled in)*
 
 ---
 
