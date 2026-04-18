@@ -7,6 +7,9 @@ import com.aa.usermanagementapp.util.FakeUserRepository
 import com.aa.usermanagementapp.util.MainDispatcherRule
 import com.aa.usermanagementapp.util.aUser
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.TestScope
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -33,58 +36,57 @@ class UsersViewModelTest {
         )
     }
 
+    /**
+     * Activates the [stateIn(WhileSubscribed)] upstream so that [viewModel.uiState.value]
+     * reflects the latest state throughout the test.
+     *
+     * This is the pattern recommended by Google for testing StateFlows created with
+     * [SharingStarted.WhileSubscribed] — the backgroundScope collector is cancelled
+     * automatically when the test ends.
+     */
+    private fun TestScope.collectUiState() {
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) {
+            viewModel.uiState.collect {}
+        }
+    }
+
     // ─── List state ───────────────────────────────────────────────────────────
 
     @Test
-    fun uiState_withEmptyRepository_emitsEmptyState() = runTest {
-        viewModel.uiState.test {
-            skipItems(1) // Loading
-            assertEquals(UsersUiState.Empty, awaitItem())
-            cancelAndIgnoreRemainingEvents()
-        }
+    fun uiState_withEmptyRepository_isEmptyState() = runTest {
+        collectUiState()
+        assertEquals(UsersUiState.Empty, viewModel.uiState.value)
     }
 
     @Test
-    fun uiState_withUsers_emitsSuccessState() = runTest {
+    fun uiState_withUsers_isSuccessState() = runTest {
         repository.setUsers(listOf(aUser(id = 1), aUser(id = 2, name = "Jane")))
-
-        viewModel.uiState.test {
-            skipItems(1) // Loading
-            val state = awaitItem()
-            assertTrue(state is UsersUiState.Success)
-            assertEquals(2, (state as UsersUiState.Success).users.size)
-            cancelAndIgnoreRemainingEvents()
-        }
+        collectUiState()
+        val state = viewModel.uiState.value
+        assertTrue(state is UsersUiState.Success)
+        assertEquals(2, (state as UsersUiState.Success).users.size)
     }
 
     @Test
-    fun uiState_emitsUpdatedSuccessWhenUserIsAdded() = runTest {
-        viewModel.uiState.test {
-            skipItems(1) // Loading
-            assertEquals(UsersUiState.Empty, awaitItem())
+    fun uiState_updatesWhenUserIsAdded() = runTest {
+        collectUiState()
+        assertEquals(UsersUiState.Empty, viewModel.uiState.value)
 
-            // Insert a user after observation starts
-            repository.insertUser(aUser())
+        repository.insertUser(aUser())
 
-            val state = awaitItem()
-            assertTrue(state is UsersUiState.Success)
-            assertEquals(1, (state as UsersUiState.Success).users.size)
-            cancelAndIgnoreRemainingEvents()
-        }
+        assertTrue(viewModel.uiState.value is UsersUiState.Success)
+        assertEquals(1, (viewModel.uiState.value as UsersUiState.Success).users.size)
     }
 
     @Test
     fun uiState_successState_containsCorrectUserData() = runTest {
         repository.setUsers(listOf(aUser(name = "Sara", age = 22, jobTitle = "QA")))
+        collectUiState()
 
-        viewModel.uiState.test {
-            skipItems(1)
-            val user = (awaitItem() as UsersUiState.Success).users.first()
-            assertEquals("Sara", user.name)
-            assertEquals(22, user.age)
-            assertEquals("QA", user.jobTitle)
-            cancelAndIgnoreRemainingEvents()
-        }
+        val user = (viewModel.uiState.value as UsersUiState.Success).users.first()
+        assertEquals("Sara", user.name)
+        assertEquals(22, user.age)
+        assertEquals("QA", user.jobTitle)
     }
 
     // ─── Delete request ───────────────────────────────────────────────────────
@@ -93,18 +95,13 @@ class UsersViewModelTest {
     fun onDeleteRequest_setsUserAsPendingDelete() = runTest {
         val user = aUser()
         repository.setUsers(listOf(user))
+        collectUiState()
 
-        viewModel.uiState.test {
-            skipItems(1)          // Loading
-            awaitItem()           // Success(pendingDeleteUser = null)
+        viewModel.onDeleteRequest(user)
 
-            viewModel.onDeleteRequest(user)
-
-            val state = awaitItem() as UsersUiState.Success
-            assertNotNull(state.pendingDeleteUser)
-            assertEquals(user.id, state.pendingDeleteUser?.id)
-            cancelAndIgnoreRemainingEvents()
-        }
+        val state = viewModel.uiState.value as UsersUiState.Success
+        assertNotNull(state.pendingDeleteUser)
+        assertEquals(user.id, state.pendingDeleteUser?.id)
     }
 
     @Test
@@ -112,17 +109,12 @@ class UsersViewModelTest {
         val alice = aUser(id = 1, name = "Alice")
         val bob = aUser(id = 2, name = "Bob")
         repository.setUsers(listOf(alice, bob))
+        collectUiState()
 
-        viewModel.uiState.test {
-            skipItems(1)
-            awaitItem() // Success
+        viewModel.onDeleteRequest(bob)
 
-            viewModel.onDeleteRequest(bob)
-
-            val state = awaitItem() as UsersUiState.Success
-            assertEquals("Bob", state.pendingDeleteUser?.name)
-            cancelAndIgnoreRemainingEvents()
-        }
+        val state = viewModel.uiState.value as UsersUiState.Success
+        assertEquals("Bob", state.pendingDeleteUser?.name)
     }
 
     // ─── Delete dismiss ───────────────────────────────────────────────────────
@@ -131,19 +123,13 @@ class UsersViewModelTest {
     fun onDeleteDismissed_clearsPendingDeleteUser() = runTest {
         val user = aUser()
         repository.setUsers(listOf(user))
+        collectUiState()
+        viewModel.onDeleteRequest(user)
 
-        viewModel.uiState.test {
-            skipItems(1)
-            awaitItem()                  // Success(pending = null)
-            viewModel.onDeleteRequest(user)
-            awaitItem()                  // Success(pending = user)
+        viewModel.onDeleteDismissed()
 
-            viewModel.onDeleteDismissed()
-
-            val state = awaitItem() as UsersUiState.Success
-            assertNull(state.pendingDeleteUser)
-            cancelAndIgnoreRemainingEvents()
-        }
+        val state = viewModel.uiState.value as UsersUiState.Success
+        assertNull(state.pendingDeleteUser)
     }
 
     @Test
@@ -201,31 +187,21 @@ class UsersViewModelTest {
     fun onDeleteConfirmed_clearsPendingDeleteUser() = runTest {
         val user = aUser()
         repository.setUsers(listOf(user))
+        collectUiState()
+        viewModel.onDeleteRequest(user)
 
-        viewModel.uiState.test {
-            skipItems(1)
-            awaitItem()                    // Success(pending = null)
-            viewModel.onDeleteRequest(user)
-            awaitItem()                    // Success(pending = user)
+        viewModel.onDeleteConfirmed()
 
-            viewModel.onDeleteConfirmed()
-
-            // Next emission: pending cleared (happens before repo delete)
-            // Then: either Empty or Success with updated list
-            // We only care that pendingDeleteUser is gone
-            val afterConfirm = awaitItem()
-            val pending = (afterConfirm as? UsersUiState.Success)?.pendingDeleteUser
-            assertNull(pending)
-            cancelAndIgnoreRemainingEvents()
-        }
+        // After confirm, pending is cleared regardless of the resulting list state
+        val pending = (viewModel.uiState.value as? UsersUiState.Success)?.pendingDeleteUser
+        assertNull(pending)
     }
 
-    // ─── Delete — guard & failure ─────────────────────────────────────────────
+    // ─── Guard & failure ──────────────────────────────────────────────────────
 
     @Test
     fun onDeleteConfirmed_withNoPendingUser_doesNotDeleteFromRepository() = runTest {
         repository.setUsers(listOf(aUser()))
-        // onDeleteRequest is NOT called — pendingDeleteUser is null
 
         viewModel.onDeleteConfirmed()
 
