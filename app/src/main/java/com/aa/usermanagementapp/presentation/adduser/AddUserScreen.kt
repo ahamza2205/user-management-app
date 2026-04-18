@@ -51,7 +51,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
-private val GENDER_OPTIONS = listOf("Male", "Female", "Other")
+private val GENDER_OPTIONS = listOf("Male", "Female")
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
